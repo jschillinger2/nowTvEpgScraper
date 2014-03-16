@@ -6,7 +6,7 @@ Retrieves the electronic programme guide (EPG) from NowTV (Hong Kong) and saves 
 
 How to run:
 
-1) Build or download (see target folder) the JAR file
+1) Build or download (see 'executables' folder) the JAR file
 
 2) Run "java -jar <filename>.jar output.xml"
 
