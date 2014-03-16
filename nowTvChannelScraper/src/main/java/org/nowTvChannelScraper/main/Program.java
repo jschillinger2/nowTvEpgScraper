@@ -1,3 +1,4 @@
+package org.nowTvChannelScraper.main;
 import java.util.Date;
 
 /**
