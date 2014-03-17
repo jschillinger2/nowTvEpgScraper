@@ -123,7 +123,7 @@ public class Main {
 		int cntInterval = 0;
 		for (Program program : programsOut) {
 
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddhhmmss");
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 			String startTimeStr = sdf.format(program.startTime);
 			String endTimeStr = sdf.format(program.endTime);
 
