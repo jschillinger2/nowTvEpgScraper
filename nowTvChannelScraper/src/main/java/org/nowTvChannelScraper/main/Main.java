@@ -1,11 +1,14 @@
 package org.nowTvChannelScraper.main;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.http.client.ClientProtocolException;
@@ -47,6 +50,8 @@ public class Main {
 	 */
 	final static int DAYS_IN_FUTURE = 4;
 
+	private static final String CHANNEL_JS_URL = "http://nowtv.now.com/gw-epg/epg/channelMapping.en-US.js";
+
 	public static void main(String[] args) throws ClientProtocolException,
 			IOException, ParseException {
 
@@ -65,6 +70,11 @@ public class Main {
 		String outputFilename = args[args.length - 1];
 
 		/*
+		 * Read channel information
+		 */
+		HashMap<String, String> channelInfo = readChannelInfo();
+
+		/*
 		 * Read programmes from NowTV website and add to data model.
 		 */
 		Date today = new Date();
@@ -81,8 +91,52 @@ public class Main {
 		/*
 		 * Creates the XML code for MythTv and saves it to a file.
 		 */
-		createMythTvXml(outputFilename, programsOut, channels);
+		createMythTvXml(outputFilename, programsOut, channels, channelInfo);
 		System.out.println("Done!");
+	}
+
+	/**
+	 * Reads the channel info from the NowTV website.
+	 * 
+	 * @throws IOException
+	 * @throws ClientProtocolException
+	 * @throws ParseException
+	 */
+	private static HashMap<String, String> readChannelInfo()
+			throws ClientProtocolException, IOException, ParseException {
+
+		// init
+		HashMap<String, String> out = new HashMap<String, String>();
+
+		// get channel js
+		HttpClient httpclient = new DefaultHttpClient();
+		HttpGet httpget = new HttpGet(CHANNEL_JS_URL);
+		System.out.println("Getting JS from NowTV " + httpget.getURI());
+		ResponseHandler<String> responseHandler = new BasicResponseHandler();
+		String responseBody = httpclient.execute(httpget, responseHandler);
+
+		// read channel js
+		String json = responseBody.split("ChannelMapping=")[1];
+		json = json.split(";")[0];
+		JSONParser parser = new JSONParser();
+		// System.out.println("Parsing JSON");
+
+		// parse header
+		System.out.println(json);
+		Object obj = parser.parse(json);
+		JSONObject jsonObject = (JSONObject) obj;
+
+		// loop through channels
+		for (Object channelObj : jsonObject.keySet()) {
+			String channelNumber = (String) channelObj;
+			JSONObject channelInfo = (JSONObject) jsonObject.get(channelNumber);
+			String channelName = (String) channelInfo.get("name");
+			out.put(channelNumber, channelName);
+			// System.out.println(channelNumber+" - "+channelName);
+		}
+
+		// out
+		return out;
 	}
 
 	/**
@@ -92,8 +146,9 @@ public class Main {
 	 * @throws FileNotFoundException
 	 */
 	private static void createMythTvXml(String outputFilename,
-			ArrayList<Program> programsOut, ArrayList<String> channels)
-			throws FileNotFoundException, UnsupportedEncodingException {
+			ArrayList<Program> programsOut, ArrayList<String> channels,
+			HashMap<String, String> channelInfo) throws FileNotFoundException,
+			UnsupportedEncodingException {
 
 		// init
 		PrintWriter writer = new PrintWriter(outputFilename, "UTF-8");
@@ -110,7 +165,8 @@ public class Main {
 		// write - channels
 		for (String channel : channels) {
 			writer.println("<channel id=\"" + channel + "\">");
-			writer.println("<display-name lang=\"en\">" + channel
+			writer.println("<display-name lang=\"en\">"
+					+ StringEscapeUtils.escapeXml(channelInfo.get(channel))
 					+ "</display-name>");
 			writer.println("<display-name lang=\"en\">" + channel
 					+ "</display-name>");
